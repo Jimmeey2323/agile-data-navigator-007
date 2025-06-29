@@ -47,7 +47,6 @@ import { formatDate, formatNumber, formatRevenue } from '@/lib/utils';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import CountUp from 'react-countup';
 
 interface AssociateMetrics {
   associate: string;
@@ -72,6 +71,32 @@ interface AssociateMetrics {
     change: number;
   };
 }
+
+// Simple CountUp component replacement
+const CountUp: React.FC<{ end: number; duration?: number; decimals?: number; suffix?: string }> = ({ 
+  end, 
+  duration = 2, 
+  decimals = 0, 
+  suffix = '' 
+}) => {
+  const [count, setCount] = useState(0);
+
+  React.useEffect(() => {
+    let startTime: number;
+    const animate = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / (duration * 1000), 1);
+      setCount(Math.floor(progress * end));
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    requestAnimationFrame(animate);
+  }, [end, duration]);
+
+  return <span>{decimals > 0 ? count.toFixed(decimals) : count}{suffix}</span>;
+};
 
 export function AssociateAnalytics() {
   const { filteredLeads, loading } = useLeads();
@@ -949,7 +974,7 @@ export function AssociateAnalytics() {
                 <div className="text-3xl font-bold text-red-700 mb-2">
                   <CountUp end={filteredAssociates.filter(a => (a?.followUpCompliance || 0) < 60).length} duration={2} />
                 </div>
-                <p className="text-sm text-red-600">Associates with <60% compliance</p>
+                <p className="text-sm text-red-600">Associates with &lt;60% compliance</p>
               </CardContent>
             </Card>
 
