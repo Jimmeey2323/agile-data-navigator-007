@@ -1,0 +1,201 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
+    
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    
+    --radius: 0.5rem;
+  }
+  
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
+    
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-medium tracking-tight;
+  }
+}
+
+/* Custom Scrollbar */
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .fancy-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .fancy-scrollbar::-webkit-scrollbar-track {
+    @apply bg-secondary/50 rounded-full;
+  }
+
+  .fancy-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/40 rounded-full hover:bg-muted-foreground/60 transition-colors;
+  }
+  
+  /* Glass effect classes */
+  .glass {
+    @apply bg-white/80 dark:bg-black/80 backdrop-blur-lg backdrop-saturate-150 border border-white/20 dark:border-black/20;
+  }
+  
+  .glass-card {
+    @apply bg-white/70 dark:bg-black/70 backdrop-blur-md backdrop-saturate-150 border border-white/20 dark:border-black/20 shadow-sm;
+  }
+  
+  .input-glass {
+    @apply bg-white/50 dark:bg-black/50 backdrop-blur-md border border-white/20 dark:border-black/20;
+  }
+}
+
+/* Inter var font */
+@import url('https://rsms.me/inter/inter.css');
+html { font-family: 'Inter', sans-serif; }
+@supports (font-variation-settings: normal) {
+  html { font-family: 'Inter var', sans-serif; }
+}
+
+/* Animation utils */
+.animate-once {
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+}
+
+/* Table specific styles */
+.lead-table {
+  @apply w-full border-collapse;
+}
+
+.lead-table th {
+  @apply h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-secondary/50;
+  @apply border-b border-r last:border-r-0;
+}
+
+.lead-table tr {
+  @apply border-b border-border/50 last:border-b-0;
+}
+
+.lead-table td {
+  @apply h-[30px] px-4 py-2 align-middle text-sm border-r last:border-r-0;
+}
+
+.lead-table tr:hover td {
+  @apply bg-muted/40;
+}
+
+.lead-table.compact td {
+  @apply py-1 text-xs;
+}
+
+/* Card styles */
+.lead-card {
+  @apply relative overflow-hidden p-4 rounded-lg flex flex-col gap-2 transition-all;
+  @apply hover:shadow-md hover:translate-y-[-2px];
+}
+
+.lead-card .badge {
+  @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+}
+
+/* Kanban styles */
+.kanban-column {
+  @apply flex-shrink-0 w-[280px] h-full rounded-lg p-3 flex flex-col gap-2;
+  @apply bg-secondary/50 dark:bg-secondary/30;
+}
+
+.kanban-card {
+  @apply rounded-md p-3 shadow-sm cursor-grab active:cursor-grabbing;
+  @apply bg-card border border-border/30;
+}
+
+/* Timeline styles */
+.timeline {
+  @apply relative pl-6 border-l-2 border-border;
+}
+
+.timeline-item {
+  @apply relative pb-6;
+}
+
+.timeline-item::before {
+  content: '';
+  @apply absolute top-0 left-[-17px] w-8 h-8 rounded-full bg-primary/10 border-4 border-background;
+}
