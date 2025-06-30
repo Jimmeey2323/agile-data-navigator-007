@@ -216,7 +216,7 @@ const Index = () => {
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
           <a 
-            href="https://expirations-manager.netlify.app/" 
+            href="https://membership-expiry-007.vercel.app/" 
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full sm:w-auto gap-2"
