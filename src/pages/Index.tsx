@@ -110,7 +110,7 @@ const Index = () => {
   };
 
   const openExpirationsManager = () => {
-    window.open('https://expirations-manager.netlify.app/', '_blank');
+    window.open('https://membership-expiry-007.vercel.app/', '_blank');
   };
 
   const handleViewChange = (view: string) => {
