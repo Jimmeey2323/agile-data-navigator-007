@@ -99,3 +99,68 @@ export function formatRevenue(value: number): string {
     return `₹${value}`;
   }
 }
+
+// Check if follow-up comment is meaningful (not just "-" or ".")
+export function isValidFollowUpComment(comment: string): boolean {
+  if (!comment || typeof comment !== 'string') return false;
+  const trimmed = comment.trim();
+  return trimmed !== '' && trimmed !== '-' && trimmed !== '.';
+}
+
+// Get follow-up status with timeline validation
+export function getFollowUpStatus(lead: any) {
+  const createdDate = new Date(lead.createdAt);
+  const now = new Date();
+  const daysSinceCreated = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+  
+  const followUps = [
+    { 
+      date: lead.followUp1Date, 
+      comments: lead.followUp1Comments, 
+      expectedDay: 1,
+      isValid: lead.followUp1Date && isValidFollowUpComment(lead.followUp1Comments)
+    },
+    { 
+      date: lead.followUp2Date, 
+      comments: lead.followUp2Comments, 
+      expectedDay: 3,
+      isValid: lead.followUp2Date && isValidFollowUpComment(lead.followUp2Comments)
+    },
+    { 
+      date: lead.followUp3Date, 
+      comments: lead.followUp3Comments, 
+      expectedDay: 5,
+      isValid: lead.followUp3Date && isValidFollowUpComment(lead.followUp3Comments)
+    },
+    { 
+      date: lead.followUp4Date, 
+      comments: lead.followUp4Comments, 
+      expectedDay: 7,
+      isValid: lead.followUp4Date && isValidFollowUpComment(lead.followUp4Comments)
+    }
+  ];
+
+  let completedCount = 0;
+  let overdueCount = 0;
+  let nextDue = null;
+
+  followUps.forEach((followUp, index) => {
+    if (followUp.isValid) {
+      completedCount++;
+    } else if (daysSinceCreated >= followUp.expectedDay) {
+      overdueCount++;
+      if (!nextDue) {
+        nextDue = followUp.expectedDay;
+      }
+    }
+  });
+
+  return {
+    completed: completedCount,
+    total: 4,
+    overdue: overdueCount,
+    nextDue,
+    daysSinceCreated,
+    followUps
+  };
+}

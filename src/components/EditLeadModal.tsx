@@ -13,7 +13,7 @@ import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Save, X, User, Mail, Phone, Calendar, MapPin, FileText, Star, TrendingUp, Clock, CheckCircle, AlertCircle, Users, Target, Activity, BarChart3, PieChart, LineChart, Zap, Globe, MessageSquare, UserPlus, Building, Award, Lightbulb, ArrowRight, Eye, Edit, Trash2, Plus, RefreshCw } from 'lucide-react';
+import { Save, X, User, Mail, Phone, Calendar, MapPin, FileText, Star, TrendingUp, Clock, CheckCircle, AlertCircle, Users, Target, Activity, BarChart3, PieChart, LineChart, Zap, Globe, MessageSquare, UserPlus, Building, Award, Lightbulb, ArrowRight, Eye, Edit, Trash2, Plus, RefreshCw, Calculator } from 'lucide-react';
 import { useLeads } from '@/contexts/LeadContext';
 import { Lead } from '@/services/googleSheets';
 import { toast } from 'sonner';
@@ -70,7 +70,7 @@ export function EditLeadModal({
   
   const [isLoading, setIsLoading] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [autoSave, setAutoSave] = useState(true); // Auto-save enabled by default
+  const [autoSave, setAutoSave] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
 
   // Initialize form data when lead changes
@@ -105,15 +105,39 @@ export function EditLeadModal({
     }
   }, [lead, sourceOptions, associateOptions, centerOptions, stageOptions, statusOptions]);
 
-  // Calculate dynamic lead score based on multiple factors
-  const leadScore = useMemo(() => {
+  // Calculate dynamic lead score with detailed breakdown
+  const leadScoreCalculation = useMemo(() => {
     let score = 0;
+    const breakdown = [];
     
     // Basic information completeness (40 points)
-    if (formData.fullName && formData.fullName.trim()) score += 10;
-    if (formData.email && formData.email.trim()) score += 10;
-    if (formData.phone && formData.phone.trim()) score += 10;
-    if (formData.remarks && formData.remarks.trim()) score += 10;
+    if (formData.fullName && formData.fullName.trim()) {
+      score += 10;
+      breakdown.push({ category: 'Full Name', points: 10, reason: 'Complete name provided' });
+    } else {
+      breakdown.push({ category: 'Full Name', points: 0, reason: 'Missing name' });
+    }
+    
+    if (formData.email && formData.email.trim()) {
+      score += 10;
+      breakdown.push({ category: 'Email', points: 10, reason: 'Valid email address' });
+    } else {
+      breakdown.push({ category: 'Email', points: 0, reason: 'Missing email' });
+    }
+    
+    if (formData.phone && formData.phone.trim()) {
+      score += 10;
+      breakdown.push({ category: 'Phone', points: 10, reason: 'Contact number provided' });
+    } else {
+      breakdown.push({ category: 'Phone', points: 0, reason: 'Missing phone number' });
+    }
+    
+    if (formData.remarks && formData.remarks.trim()) {
+      score += 10;
+      breakdown.push({ category: 'Remarks', points: 10, reason: 'Additional notes provided' });
+    } else {
+      breakdown.push({ category: 'Remarks', points: 0, reason: 'No additional notes' });
+    }
     
     // Stage progression (30 points)
     const stageScores = {
@@ -125,7 +149,13 @@ export function EditLeadModal({
       'Not Interested': 0,
       'Lost': 0
     };
-    score += stageScores[formData.stage as keyof typeof stageScores] || 0;
+    const stagePoints = stageScores[formData.stage as keyof typeof stageScores] || 0;
+    score += stagePoints;
+    breakdown.push({ 
+      category: 'Stage Progress', 
+      points: stagePoints, 
+      reason: `Current stage: ${formData.stage}` 
+    });
     
     // Status quality (20 points)
     const statusScores = {
@@ -135,7 +165,13 @@ export function EditLeadModal({
       'Converted': 20,
       'Lost': 0
     };
-    score += statusScores[formData.status as keyof typeof statusScores] || 0;
+    const statusPoints = statusScores[formData.status as keyof typeof statusScores] || 0;
+    score += statusPoints;
+    breakdown.push({ 
+      category: 'Lead Quality', 
+      points: statusPoints, 
+      reason: `Status: ${formData.status}` 
+    });
     
     // Follow-up activity (10 points)
     let followUpCount = 0;
@@ -143,9 +179,20 @@ export function EditLeadModal({
     if (formData.followUp2Date) followUpCount++;
     if (formData.followUp3Date) followUpCount++;
     if (formData.followUp4Date) followUpCount++;
-    score += followUpCount * 2.5;
     
-    return Math.min(Math.round(score), 100);
+    const followUpPoints = followUpCount * 2.5;
+    score += followUpPoints;
+    breakdown.push({ 
+      category: 'Follow-up Activity', 
+      points: followUpPoints, 
+      reason: `${followUpCount} follow-up(s) completed` 
+    });
+    
+    return {
+      total: Math.min(Math.round(score), 100),
+      breakdown,
+      maxPossible: 100
+    };
   }, [formData]);
 
   // Get similar leads
@@ -281,12 +328,20 @@ export function EditLeadModal({
               </div>
               
               <div className="flex items-center gap-6">
-                {/* Lead Score */}
+                {/* Lead Score with Calculation */}
                 <div className="text-center bg-white/20 backdrop-blur-sm rounded-xl p-4 border border-white/40 shadow-lg">
-                  <div className="text-sm font-semibold text-white mb-2">Lead Score</div>
+                  <div className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
+                    <Calculator className="h-4 w-4" />
+                    Lead Score
+                  </div>
                   <div className="flex items-center gap-3">
-                    <Progress value={leadScore} className="w-24 h-3 bg-white/20" />
-                    <span className="text-2xl font-bold text-white">{leadScore}%</span>
+                    <Progress value={leadScoreCalculation.total} className="w-24 h-3 bg-white/20" />
+                    <span className="text-2xl font-bold text-white">{leadScoreCalculation.total}%</span>
+                  </div>
+                  <div className="text-xs text-blue-100 mt-1">
+                    {leadScoreCalculation.total >= 80 ? 'Excellent' : 
+                     leadScoreCalculation.total >= 60 ? 'Good' : 
+                     leadScoreCalculation.total >= 40 ? 'Fair' : 'Needs Improvement'}
                   </div>
                 </div>
                 
@@ -309,24 +364,28 @@ export function EditLeadModal({
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
             {/* Tab Navigation - Fixed */}
             <div className="flex-shrink-0 px-8 py-4 bg-gray-50 border-b border-gray-200">
-              <TabsList className="grid grid-cols-5 w-full bg-white shadow-lg rounded-xl border border-gray-200">
-                <TabsTrigger value="overview" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white">
+              <TabsList className="grid grid-cols-6 w-full bg-white shadow-lg rounded-xl border border-gray-200">
+                <TabsTrigger value="overview" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white text-xs">
                   <User className="h-4 w-4" />
                   Overview
                 </TabsTrigger>
-                <TabsTrigger value="details" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white">
+                <TabsTrigger value="details" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white text-xs">
                   <FileText className="h-4 w-4" />
                   Details
                 </TabsTrigger>
-                <TabsTrigger value="followups" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white">
+                <TabsTrigger value="followups" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white text-xs">
                   <MessageSquare className="h-4 w-4" />
                   Follow-ups
                 </TabsTrigger>
-                <TabsTrigger value="insights" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white">
+                <TabsTrigger value="score" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white text-xs">
+                  <Calculator className="h-4 w-4" />
+                  Score
+                </TabsTrigger>
+                <TabsTrigger value="insights" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white text-xs">
                   <BarChart3 className="h-4 w-4" />
                   Insights
                 </TabsTrigger>
-                <TabsTrigger value="activity" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white">
+                <TabsTrigger value="activity" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white text-xs">
                   <Activity className="h-4 w-4" />
                   Activity
                 </TabsTrigger>
@@ -336,48 +395,48 @@ export function EditLeadModal({
             {/* Tab Content - Scrollable with proper height */}
             <div className="flex-1 overflow-hidden">
               <ScrollArea className="h-full w-full">
-                <div className="p-8 pb-24"> {/* Added bottom padding for footer space */}
+                <div className="p-8 pb-24">
                   <TabsContent value="overview" className="mt-0 space-y-6">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {/* Basic Information */}
                       <Card className="bg-white border border-gray-200 shadow-xl rounded-2xl overflow-hidden">
                         <CardHeader className="bg-gradient-to-r from-blue-50 to-teal-50">
-                          <CardTitle className="flex items-center gap-2 text-slate-800">
+                          <CardTitle className="flex items-center gap-2 text-slate-800 text-sm">
                             <User className="h-5 w-5" />
                             Basic Information
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4 p-6">
                           <div>
-                            <Label htmlFor="fullName" className="text-sm font-semibold text-slate-700">Full Name *</Label>
+                            <Label htmlFor="fullName" className="text-xs font-semibold text-slate-700">Full Name *</Label>
                             <Input 
                               id="fullName" 
                               value={formData.fullName} 
                               onChange={e => handleInputChange('fullName', e.target.value)} 
-                              className="bg-white border-gray-300 mt-1 focus:ring-2 focus:ring-blue-500/50" 
+                              className="bg-white border-gray-300 mt-1 focus:ring-2 focus:ring-blue-500/50 text-sm" 
                               placeholder="Enter full name" 
                             />
                           </div>
                           
                           <div>
-                            <Label htmlFor="email" className="text-sm font-semibold text-slate-700">Email Address</Label>
+                            <Label htmlFor="email" className="text-xs font-semibold text-slate-700">Email Address</Label>
                             <Input 
                               id="email" 
                               type="email" 
                               value={formData.email} 
                               onChange={e => handleInputChange('email', e.target.value)} 
-                              className="bg-white border-gray-300 mt-1 focus:ring-2 focus:ring-blue-500/50" 
+                              className="bg-white border-gray-300 mt-1 focus:ring-2 focus:ring-blue-500/50 text-sm" 
                               placeholder="Enter email address" 
                             />
                           </div>
                           
                           <div>
-                            <Label htmlFor="phone" className="text-sm font-semibold text-slate-700">Phone Number</Label>
+                            <Label htmlFor="phone" className="text-xs font-semibold text-slate-700">Phone Number</Label>
                             <Input 
                               id="phone" 
                               value={formData.phone} 
                               onChange={e => handleInputChange('phone', e.target.value)} 
-                              className="bg-white border-gray-300 mt-1 focus:ring-2 focus:ring-blue-500/50" 
+                              className="bg-white border-gray-300 mt-1 focus:ring-2 focus:ring-blue-500/50 text-sm" 
                               placeholder="Enter phone number" 
                             />
                           </div>
@@ -387,44 +446,44 @@ export function EditLeadModal({
                       {/* Lead Classification */}
                       <Card className="bg-white border border-gray-200 shadow-xl rounded-2xl overflow-hidden">
                         <CardHeader className="bg-gradient-to-r from-teal-50 to-cyan-50">
-                          <CardTitle className="flex items-center gap-2 text-slate-800">
+                          <CardTitle className="flex items-center gap-2 text-slate-800 text-sm">
                             <Target className="h-5 w-5" />
                             Lead Classification
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4 p-6">
                           <div>
-                            <Label htmlFor="source" className="text-sm font-semibold text-slate-700">Source</Label>
+                            <Label htmlFor="source" className="text-xs font-semibold text-slate-700">Source</Label>
                             <Select value={formData.source} onValueChange={value => handleInputChange('source', value)}>
-                              <SelectTrigger className="bg-white border-gray-300 mt-1">
+                              <SelectTrigger className="bg-white border-gray-300 mt-1 text-sm">
                                 <SelectValue placeholder="Select source" />
                               </SelectTrigger>
                               <SelectContent>
-                                {sourceOptions.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
+                                {sourceOptions.map(option => <SelectItem key={option} value={option} className="text-sm">{option}</SelectItem>)}
                               </SelectContent>
                             </Select>
                           </div>
                           
                           <div>
-                            <Label htmlFor="status" className="text-sm font-semibold text-slate-700">Status</Label>
+                            <Label htmlFor="status" className="text-xs font-semibold text-slate-700">Status</Label>
                             <Select value={formData.status} onValueChange={value => handleInputChange('status', value)}>
-                              <SelectTrigger className="bg-white border-gray-300 mt-1">
+                              <SelectTrigger className="bg-white border-gray-300 mt-1 text-sm">
                                 <SelectValue placeholder="Select status" />
                               </SelectTrigger>
                               <SelectContent>
-                                {statusOptions.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
+                                {statusOptions.map(option => <SelectItem key={option} value={option} className="text-sm">{option}</SelectItem>)}
                               </SelectContent>
                             </Select>
                           </div>
                           
                           <div>
-                            <Label htmlFor="stage" className="text-sm font-semibold text-slate-700">Stage</Label>
+                            <Label htmlFor="stage" className="text-xs font-semibold text-slate-700">Stage</Label>
                             <Select value={formData.stage} onValueChange={value => handleInputChange('stage', value)}>
-                              <SelectTrigger className="bg-white border-gray-300 mt-1">
+                              <SelectTrigger className="bg-white border-gray-300 mt-1 text-sm">
                                 <SelectValue placeholder="Select stage" />
                               </SelectTrigger>
                               <SelectContent>
-                                {stageOptions.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
+                                {stageOptions.map(option => <SelectItem key={option} value={option} className="text-sm">{option}</SelectItem>)}
                               </SelectContent>
                             </Select>
                           </div>
@@ -436,7 +495,7 @@ export function EditLeadModal({
                     {engagementData.length > 0 && (
                       <Card className="bg-white border border-gray-200 shadow-xl rounded-2xl overflow-hidden">
                         <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50">
-                          <CardTitle className="flex items-center gap-2 text-slate-800">
+                          <CardTitle className="flex items-center gap-2 text-slate-800 text-sm">
                             <LineChart className="h-5 w-5" />
                             Engagement Timeline
                           </CardTitle>
@@ -445,14 +504,15 @@ export function EditLeadModal({
                           <ResponsiveContainer width="100%" height={200}>
                             <RechartsLineChart data={engagementData}>
                               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                              <XAxis dataKey="name" stroke="#64748b" />
-                              <YAxis stroke="#64748b" />
+                              <XAxis dataKey="name" stroke="#64748b" className="text-xs" />
+                              <YAxis stroke="#64748b" className="text-xs" />
                               <Tooltip contentStyle={{
                                 backgroundColor: 'rgba(255, 255, 255, 0.9)',
                                 border: '1px solid rgba(255, 255, 255, 0.3)',
                                 borderRadius: '12px',
                                 backdropFilter: 'blur(10px)',
-                                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+                                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                                fontSize: '12px'
                               }} />
                               <Line type="monotone" dataKey="engagement" stroke="#6366f1" strokeWidth={3} dot={{
                                 fill: '#6366f1',
@@ -470,44 +530,44 @@ export function EditLeadModal({
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       <Card className="bg-white border border-gray-200 shadow-xl rounded-2xl overflow-hidden">
                         <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
-                          <CardTitle className="flex items-center gap-2 text-slate-800">
+                          <CardTitle className="flex items-center gap-2 text-slate-800 text-sm">
                             <Building className="h-5 w-5" />
                             Assignment & Location
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4 p-6">
                           <div>
-                            <Label htmlFor="associate" className="text-sm font-semibold text-slate-700">Associate</Label>
+                            <Label htmlFor="associate" className="text-xs font-semibold text-slate-700">Associate</Label>
                             <Select value={formData.associate} onValueChange={value => handleInputChange('associate', value)}>
-                              <SelectTrigger className="bg-white border-gray-300 mt-1">
+                              <SelectTrigger className="bg-white border-gray-300 mt-1 text-sm">
                                 <SelectValue placeholder="Select associate" />
                               </SelectTrigger>
                               <SelectContent>
-                                {associateOptions.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
+                                {associateOptions.map(option => <SelectItem key={option} value={option} className="text-sm">{option}</SelectItem>)}
                               </SelectContent>
                             </Select>
                           </div>
                           
                           <div>
-                            <Label htmlFor="center" className="text-sm font-semibold text-slate-700">Center</Label>
+                            <Label htmlFor="center" className="text-xs font-semibold text-slate-700">Center</Label>
                             <Select value={formData.center} onValueChange={value => handleInputChange('center', value)}>
-                              <SelectTrigger className="bg-white border-gray-300 mt-1">
+                              <SelectTrigger className="bg-white border-gray-300 mt-1 text-sm">
                                 <SelectValue placeholder="Select center" />
                               </SelectTrigger>
                               <SelectContent>
-                                {centerOptions.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
+                                {centerOptions.map(option => <SelectItem key={option} value={option} className="text-sm">{option}</SelectItem>)}
                               </SelectContent>
                             </Select>
                           </div>
                           
                           <div>
-                            <Label htmlFor="createdAt" className="text-sm font-semibold text-slate-700">Created Date</Label>
+                            <Label htmlFor="createdAt" className="text-xs font-semibold text-slate-700">Created Date</Label>
                             <Input 
                               id="createdAt" 
                               type="date" 
                               value={formData.createdAt} 
                               onChange={e => handleInputChange('createdAt', e.target.value)} 
-                              className="bg-white border-gray-300 mt-1 focus:ring-2 focus:ring-blue-500/50" 
+                              className="bg-white border-gray-300 mt-1 focus:ring-2 focus:ring-blue-500/50 text-sm" 
                             />
                           </div>
                         </CardContent>
@@ -515,19 +575,19 @@ export function EditLeadModal({
 
                       <Card className="bg-white border border-gray-200 shadow-xl rounded-2xl overflow-hidden">
                         <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50">
-                          <CardTitle className="flex items-center gap-2 text-slate-800">
+                          <CardTitle className="flex items-center gap-2 text-slate-800 text-sm">
                             <FileText className="h-5 w-5" />
                             Notes & Remarks
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="p-6">
                           <div>
-                            <Label htmlFor="remarks" className="text-sm font-semibold text-slate-700">Remarks</Label>
+                            <Label htmlFor="remarks" className="text-xs font-semibold text-slate-700">Remarks</Label>
                             <Textarea 
                               id="remarks" 
                               value={formData.remarks} 
                               onChange={e => handleInputChange('remarks', e.target.value)} 
-                              className="bg-white border-gray-300 min-h-[120px] mt-1 focus:ring-2 focus:ring-blue-500/50" 
+                              className="bg-white border-gray-300 min-h-[120px] mt-1 focus:ring-2 focus:ring-blue-500/50 text-sm" 
                               placeholder="Add any additional notes or remarks about this lead..." 
                             />
                           </div>
@@ -541,31 +601,31 @@ export function EditLeadModal({
                       {[1, 2, 3, 4].map(num => (
                         <Card key={num} className="bg-white border border-gray-200 shadow-xl rounded-2xl overflow-hidden">
                           <CardHeader className="bg-gradient-to-r from-orange-50 to-red-50">
-                            <CardTitle className="flex items-center gap-2 text-slate-800">
+                            <CardTitle className="flex items-center gap-2 text-slate-800 text-sm">
                               <MessageSquare className="h-5 w-5" />
                               Follow-up {num}
                             </CardTitle>
                           </CardHeader>
                           <CardContent className="space-y-4 p-6">
                             <div>
-                              <Label htmlFor={`followUp${num}Date`} className="text-sm font-semibold text-slate-700">Date</Label>
+                              <Label htmlFor={`followUp${num}Date`} className="text-xs font-semibold text-slate-700">Date</Label>
                               <Input 
                                 id={`followUp${num}Date`} 
                                 type="date" 
                                 value={formData[`followUp${num}Date` as keyof Lead] as string || ''} 
                                 onChange={e => handleInputChange(`followUp${num}Date` as keyof Lead, e.target.value)} 
-                                className="bg-white border-gray-300 mt-1 focus:ring-2 focus:ring-blue-500/50" 
+                                className="bg-white border-gray-300 mt-1 focus:ring-2 focus:ring-blue-500/50 text-sm" 
                               />
                             </div>
                             
                             <div>
-                              <Label htmlFor={`followUp${num}Comments`} className="text-sm font-semibold text-slate-700">Comments</Label>
+                              <Label htmlFor={`followUp${num}Comments`} className="text-xs font-semibold text-slate-700">Comments</Label>
                               <Textarea 
                                 id={`followUp${num}Comments`} 
                                 value={formData[`followUp${num}Comments` as keyof Lead] as string || ''} 
                                 onChange={e => handleInputChange(`followUp${num}Comments` as keyof Lead, e.target.value)} 
                                 placeholder={`Add comments for follow-up ${num}...`} 
-                                className="bg-white border-gray-300 mt-1 focus:ring-2 focus:ring-blue-500/50 min-h-[80px]" 
+                                className="bg-white border-gray-300 mt-1 focus:ring-2 focus:ring-blue-500/50 min-h-[80px] text-sm" 
                               />
                             </div>
                           </CardContent>
@@ -574,12 +634,81 @@ export function EditLeadModal({
                     </div>
                   </TabsContent>
 
+                  <TabsContent value="score" className="mt-0 space-y-6">
+                    <Card className="bg-white border border-gray-200 shadow-xl rounded-2xl overflow-hidden">
+                      <CardHeader className="bg-gradient-to-r from-purple-50 to-violet-50">
+                        <CardTitle className="flex items-center gap-2 text-slate-800 text-sm">
+                          <Calculator className="h-5 w-5" />
+                          Lead Score Calculation
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        <div className="space-y-6">
+                          {/* Overall Score */}
+                          <div className="text-center">
+                            <div className="text-4xl font-bold text-slate-800 mb-2">
+                              {leadScoreCalculation.total}/100
+                            </div>
+                            <Progress value={leadScoreCalculation.total} className="w-full h-4 mb-2" />
+                            <p className="text-sm text-slate-600">
+                              {leadScoreCalculation.total >= 80 ? 'Excellent Lead Quality' : 
+                               leadScoreCalculation.total >= 60 ? 'Good Lead Quality' : 
+                               leadScoreCalculation.total >= 40 ? 'Fair Lead Quality' : 'Needs Improvement'}
+                            </p>
+                          </div>
+
+                          {/* Score Breakdown */}
+                          <div className="space-y-4">
+                            <h4 className="font-semibold text-slate-800 text-sm">Score Breakdown</h4>
+                            {leadScoreCalculation.breakdown.map((item, index) => (
+                              <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                                <div className="flex-1">
+                                  <div className="font-medium text-sm text-slate-800">{item.category}</div>
+                                  <div className="text-xs text-slate-600">{item.reason}</div>
+                                </div>
+                                <div className="text-right">
+                                  <div className={`font-bold text-sm ${item.points > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    +{item.points} pts
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Improvement Suggestions */}
+                          <div className="bg-blue-50 p-4 rounded-lg">
+                            <h4 className="font-semibold text-blue-800 text-sm mb-2 flex items-center gap-2">
+                              <Lightbulb className="h-4 w-4" />
+                              Improvement Suggestions
+                            </h4>
+                            <ul className="text-xs text-blue-700 space-y-1">
+                              {leadScoreCalculation.total < 100 && (
+                                <>
+                                  {!formData.fullName && <li>• Add complete name information</li>}
+                                  {!formData.email && <li>• Add email address for better communication</li>}
+                                  {!formData.phone && <li>• Add phone number for direct contact</li>}
+                                  {!formData.remarks && <li>• Add detailed remarks about the lead</li>}
+                                  {formData.stage === 'New Enquiry' && <li>• Progress the lead to next stage</li>}
+                                  {formData.status === 'Cold' && <li>• Improve lead quality through engagement</li>}
+                                  {!formData.followUp1Date && <li>• Schedule first follow-up activity</li>}
+                                </>
+                              )}
+                              {leadScoreCalculation.total === 100 && (
+                                <li>• Excellent! This lead has maximum score potential</li>
+                              )}
+                            </ul>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
                   <TabsContent value="insights" className="mt-0 space-y-6">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {/* Source Distribution Chart */}
                       <Card className="bg-white border border-gray-200 shadow-xl rounded-2xl overflow-hidden">
                         <CardHeader className="bg-gradient-to-r from-violet-50 to-purple-50">
-                          <CardTitle className="flex items-center gap-2 text-slate-800">
+                          <CardTitle className="flex items-center gap-2 text-slate-800 text-sm">
                             <PieChart className="h-5 w-5" />
                             Source Distribution
                           </CardTitle>
@@ -594,6 +723,7 @@ export function EditLeadModal({
                                 outerRadius={80} 
                                 dataKey="value" 
                                 label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                                className="text-xs"
                               >
                                 {sourceDistribution.map((entry, index) => (
                                   <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -608,7 +738,7 @@ export function EditLeadModal({
                       {/* Similar Leads */}
                       <Card className="bg-white border border-gray-200 shadow-xl rounded-2xl overflow-hidden">
                         <CardHeader className="bg-gradient-to-r from-rose-50 to-pink-50">
-                          <CardTitle className="flex items-center gap-2 text-slate-800">
+                          <CardTitle className="flex items-center gap-2 text-slate-800 text-sm">
                             <Users className="h-5 w-5" />
                             Similar Leads
                           </CardTitle>
@@ -631,7 +761,7 @@ export function EditLeadModal({
                               ))}
                             </div>
                           ) : (
-                            <p className="text-slate-600 text-center py-8">No similar leads found</p>
+                            <p className="text-slate-600 text-center py-8 text-sm">No similar leads found</p>
                           )}
                         </CardContent>
                       </Card>
@@ -641,7 +771,7 @@ export function EditLeadModal({
                   <TabsContent value="activity" className="mt-0 space-y-6">
                     <Card className="bg-white border border-gray-200 shadow-xl rounded-2xl overflow-hidden">
                       <CardHeader className="bg-gradient-to-r from-cyan-50 to-blue-50">
-                        <CardTitle className="flex items-center gap-2 text-slate-800">
+                        <CardTitle className="flex items-center gap-2 text-slate-800 text-sm">
                           <Activity className="h-5 w-5" />
                           Activity Timeline
                         </CardTitle>
@@ -656,7 +786,7 @@ export function EditLeadModal({
                                 </div>
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <h4 className="font-semibold text-slate-800">{activity.title}</h4>
+                                    <h4 className="font-semibold text-slate-800 text-sm">{activity.title}</h4>
                                     <Badge variant="outline" className="text-xs bg-white border-gray-200">
                                       {formatDate(activity.date)}
                                     </Badge>
@@ -669,7 +799,7 @@ export function EditLeadModal({
                         ) : (
                           <div className="text-center py-12">
                             <Activity className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                            <p className="text-slate-600">No activity recorded yet</p>
+                            <p className="text-slate-600 text-sm">No activity recorded yet</p>
                           </div>
                         )}
                       </CardContent>
@@ -694,10 +824,10 @@ export function EditLeadModal({
             </div>
             
             <div className="flex items-center gap-4">
-              <Button variant="outline" onClick={handleClose} disabled={isLoading} className="bg-white border-gray-300 hover:bg-gray-50">
+              <Button variant="outline" onClick={handleClose} disabled={isLoading} className="bg-white border-gray-300 hover:bg-gray-50 text-sm">
                 Cancel
               </Button>
-              <Button onClick={handleSave} disabled={isLoading || !formData.fullName.trim()} className="bg-gradient-to-r from-blue-500 to-teal-600 hover:from-blue-600 hover:to-teal-700 shadow-lg">
+              <Button onClick={handleSave} disabled={isLoading || !formData.fullName.trim()} className="bg-gradient-to-r from-blue-500 to-teal-600 hover:from-blue-600 hover:to-teal-700 shadow-lg text-sm">
                 {isLoading ? (
                   <>
                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />

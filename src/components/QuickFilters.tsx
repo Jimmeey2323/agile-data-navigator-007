@@ -7,7 +7,10 @@ import {
   Calendar,
   CalendarDays,
   CalendarRange,
-  Building
+  Building,
+  MapPin,
+  Timer,
+  CalendarClock
 } from 'lucide-react';
 
 export function QuickFilters() {
@@ -31,13 +34,11 @@ export function QuickFilters() {
           end: yesterday
         };
       case 'thisWeek':
-        // Get Monday of current week
         const startOfWeek = new Date(today);
         const dayOfWeek = today.getDay();
-        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday = 0, so 6 days back to Monday
+        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
         startOfWeek.setDate(today.getDate() - daysToMonday);
         
-        // Get Sunday of current week
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(startOfWeek.getDate() + 6);
         
@@ -46,13 +47,11 @@ export function QuickFilters() {
           end: endOfWeek
         };
       case 'lastWeek':
-        // Get Monday of last week
         const lastWeekStart = new Date(today);
         const currentDayOfWeek = today.getDay();
-        const daysToLastMonday = currentDayOfWeek === 0 ? 13 : currentDayOfWeek + 6; // Go back to last Monday
+        const daysToLastMonday = currentDayOfWeek === 0 ? 13 : currentDayOfWeek + 6;
         lastWeekStart.setDate(today.getDate() - daysToLastMonday);
         
-        // Get Sunday of last week
         const lastWeekEnd = new Date(lastWeekStart);
         lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
         
@@ -108,7 +107,7 @@ export function QuickFilters() {
         dateRange: { start: null, end: null }
       });
     } else {
-      // Apply the filter
+      // Apply the filter - PRESERVE existing center filters
       setFilters({
         ...filters,
         dateRange
@@ -120,13 +119,13 @@ export function QuickFilters() {
     const isCurrentlyActive = filters.center.includes(center);
     
     if (isCurrentlyActive) {
-      // Remove the center filter
+      // Remove the center filter - PRESERVE existing date filters
       setFilters({
         ...filters,
         center: filters.center.filter(c => c !== center)
       });
     } else {
-      // Add the center filter
+      // Add the center filter - PRESERVE existing date filters
       setFilters({
         ...filters,
         center: [...filters.center, center]
@@ -148,31 +147,31 @@ export function QuickFilters() {
 
   const quickFilterButtons = [
     { key: 'today', label: 'Today', icon: Clock },
-    { key: 'yesterday', label: 'Yesterday', icon: Clock },
+    { key: 'yesterday', label: 'Yesterday', icon: Timer },
     { key: 'last7Days', label: 'Last 7 Days', icon: CalendarDays },
     { key: 'thisWeek', label: 'This Week', icon: Calendar },
-    { key: 'lastWeek', label: 'Last Week', icon: Calendar },
+    { key: 'lastWeek', label: 'Last Week', icon: CalendarClock },
     { key: 'thisMonth', label: 'This Month', icon: CalendarRange },
     { key: 'lastMonth', label: 'Last Month', icon: CalendarRange },
     { key: 'last30Days', label: 'Last 30 Days', icon: CalendarDays },
   ];
 
   return (
-    <Card className="p-4 shadow-sm border-border/30">
-      <div className="flex flex-col space-y-4">
+    <Card className="p-3 shadow-sm border-border/30">
+      <div className="flex flex-col space-y-3">
         <div className="flex flex-col space-y-2">
-          <h4 className="text-sm font-medium text-muted-foreground">Quick Date Filters</h4>
-          <div className="flex flex-wrap gap-2">
+          <h4 className="text-xs font-medium text-muted-foreground">Quick Date Filters (Combinable)</h4>
+          <div className="flex flex-wrap gap-1.5">
             {quickFilterButtons.map(({ key, label, icon: Icon }) => (
               <Button
                 key={key}
                 variant={isActiveFilter(key) ? "default" : "outline"}
                 size="sm"
                 onClick={() => handleQuickFilter(key)}
-                className={`gap-2 h-8 ${
+                className={`gap-1.5 h-7 text-xs transition-all duration-200 ${
                   isActiveFilter(key) 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'hover:bg-primary/10'
+                    ? 'bg-primary text-primary-foreground shadow-md transform scale-105' 
+                    : 'hover:bg-primary/10 hover:scale-105'
                 }`}
               >
                 <Icon className="h-3 w-3" />
@@ -184,24 +183,39 @@ export function QuickFilters() {
 
         {centerOptions.length > 0 && (
           <div className="flex flex-col space-y-2">
-            <h4 className="text-sm font-medium text-muted-foreground">Center Filters</h4>
-            <div className="flex flex-wrap gap-2">
+            <h4 className="text-xs font-medium text-muted-foreground">Location Filters (Combinable)</h4>
+            <div className="flex flex-wrap gap-1.5">
               {centerOptions.map((center) => (
                 <Button
                   key={center}
                   variant={isActiveCenterFilter(center) ? "default" : "outline"}
                   size="sm"
                   onClick={() => handleCenterFilter(center)}
-                  className={`gap-2 h-8 ${
+                  className={`gap-1.5 h-7 text-xs transition-all duration-200 ${
                     isActiveCenterFilter(center) 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'hover:bg-primary/10'
+                      ? 'bg-primary text-primary-foreground shadow-md transform scale-105' 
+                      : 'hover:bg-primary/10 hover:scale-105'
                   }`}
                 >
-                  <Building className="h-3 w-3" />
+                  <MapPin className="h-3 w-3" />
                   {center}
                 </Button>
               ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Active filters summary */}
+        {(filters.dateRange.start || filters.dateRange.end || filters.center.length > 0) && (
+          <div className="pt-2 border-t border-border/30">
+            <div className="text-xs text-muted-foreground">
+              <span className="font-medium">Active: </span>
+              {filters.dateRange.start && (
+                <span className="text-blue-600">Date filter + </span>
+              )}
+              {filters.center.length > 0 && (
+                <span className="text-green-600">{filters.center.length} location(s)</span>
+              )}
             </div>
           </div>
         )}
