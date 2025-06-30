@@ -1,3 +1,4 @@
+
 import { delay } from '@/lib/utils';
 import Papa from 'papaparse';
 
@@ -28,8 +29,7 @@ export interface Lead {
 // Google Sheets API configuration
 const SPREADSHEET_ID = '1dQMNF69WnXVQdhlLvUZTig3kL97NA21k6eZ9HRu6xiQ';
 const SHEET_NAME = '◉ Leads';
-// Updated to fetch ALL columns and rows - Google Sheets will automatically return only filled cells
-const SHEET_RANGE = `${SHEET_NAME}!A:ZZ`; // Expanded range to cover all possible columns
+const SHEET_RANGE = `${SHEET_NAME}!A:AF`; // Updated range to include more columns (A to AF)
 
 // OAuth credentials
 const CLIENT_ID = '416630995185-007ermh3iidknbbtdmu5vct207mdlbaa.apps.googleusercontent.com';
@@ -94,9 +94,9 @@ const getAccessToken = async (): Promise<string> => {
   }
 };
 
-// Function to fetch all leads from Google Sheets with enhanced data processing
+// Function to fetch all leads from Google Sheets
 export const fetchLeads = async (): Promise<Lead[]> => {
-  console.log('Fetching ALL leads from Google Sheets (complete dataset)...');
+  console.log('Fetching leads from Google Sheets...');
   
   try {
     // Check if we have a cached version that's still fresh
@@ -109,10 +109,8 @@ export const fetchLeads = async (): Promise<Lead[]> => {
     // Get access token
     const accessToken = await getAccessToken();
     
-    // Fetch data from Google Sheets API with enhanced parameters
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_RANGE}?valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING&majorDimension=ROWS`;
-    
-    console.log('Fetching from URL:', url);
+    // Fetch data from Google Sheets API
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_RANGE}`;
     
     const response = await fetch(url, {
       method: 'GET',
@@ -123,15 +121,11 @@ export const fetchLeads = async (): Promise<Lead[]> => {
     });
     
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API Error Response:', errorText);
-      throw new Error(`Failed to fetch sheet data: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to fetch sheet data: ${response.statusText}`);
     }
     
     const data = await response.json();
     const rows = data.values || [];
-    
-    console.log(`Raw data received: ${rows.length} rows total`);
     
     if (rows.length < 2) {
       console.log('Sheet is empty or has only headers');
@@ -140,174 +134,128 @@ export const fetchLeads = async (): Promise<Lead[]> => {
     
     // First row contains headers
     const headers = rows[0];
-    console.log('Sheet headers found:', headers.length, 'columns');
-    console.log('Header sample:', headers.slice(0, 10));
+    console.log('Sheet headers:', headers);
     
-    // Process all data rows (skip header)
-    const dataRows = rows.slice(1);
-    console.log(`Processing ${dataRows.length} data rows...`);
-    
-    // Map sheet data to Lead objects with enhanced processing
-    const leads: Lead[] = [];
-    let processedCount = 0;
-    let skippedCount = 0;
-    
-    for (let index = 0; index < dataRows.length; index++) {
-      const row = dataRows[index];
-      
-      // Skip completely empty rows
-      if (!row || row.every((cell: any) => !cell || cell.toString().trim() === '')) {
-        skippedCount++;
-        continue;
-      }
-      
-      const lead: Partial<Lead> = { 
-        id: `lead-${index + 1}` 
-      };
+    // Map sheet data to Lead objects
+    const leads: Lead[] = rows.slice(1).map((row: any[], index: number) => {
+      const lead: Partial<Lead> = { id: `lead-${index + 1}` };
       
       // Map each column value to the corresponding field based on headers
       headers.forEach((header: string, colIndex: number) => {
         const value = row[colIndex] || '';
-        const cleanValue = value.toString().trim();
         
-        // Enhanced header mapping with more variations
-        const headerLower = header.toLowerCase().trim();
-        
-        switch(true) {
-          case headerLower === 'id' || headerLower === 'lead id':
-            if (cleanValue) lead.id = cleanValue;
+        switch(header.toLowerCase()) {
+          case 'id':
+            lead.id = value || `lead-${index + 1}`;
             break;
-          case headerLower.includes('name') || headerLower.includes('client'):
-            if (cleanValue) lead.fullName = cleanValue;
+          case 'name':
+          case 'full name':
+          case 'client name':
+            lead.fullName = value;
             break;
-          case headerLower.includes('email'):
-            if (cleanValue) lead.email = cleanValue;
+          case 'email':
+          case 'email address':
+            lead.email = value;
             break;
-          case headerLower.includes('phone') || headerLower.includes('contact') || headerLower.includes('mobile'):
-            if (cleanValue) lead.phone = cleanValue;
+          case 'phone':
+          case 'contact number':
+          case 'mobile':
+            lead.phone = value;
             break;
-          case headerLower.includes('source') || headerLower === 'lead source':
-            if (cleanValue) lead.source = cleanValue;
+          case 'source':
+          case 'lead source':
+            lead.source = value;
             break;
-          case headerLower.includes('associate') || headerLower.includes('assigned'):
-            if (cleanValue) lead.associate = cleanValue;
+          case 'associate':
+          case 'assigned to':
+            lead.associate = value;
             break;
-          case headerLower === 'status':
-            if (cleanValue) lead.status = cleanValue;
+          case 'status':
+            lead.status = value;
             break;
-          case headerLower === 'stage':
-            if (cleanValue) lead.stage = cleanValue;
+          case 'stage':
+            lead.stage = value;
             break;
-          case headerLower.includes('created') || headerLower.includes('date'):
-            if (cleanValue) {
-              // Handle various date formats
-              try {
-                const dateValue = new Date(cleanValue);
-                if (!isNaN(dateValue.getTime())) {
-                  lead.createdAt = dateValue.toISOString().split('T')[0];
-                } else {
-                  lead.createdAt = cleanValue;
-                }
-              } catch {
-                lead.createdAt = cleanValue;
-              }
-            }
+          case 'created at':
+          case 'date':
+          case 'created date':
+            lead.createdAt = value || new Date().toISOString().split('T')[0];
             break;
-          case headerLower.includes('center') || headerLower.includes('location'):
-            if (cleanValue) lead.center = cleanValue;
+          case 'center':
+          case 'location':
+            lead.center = value;
             break;
-          case headerLower.includes('remarks') || headerLower.includes('notes') || headerLower.includes('comments'):
-            if (cleanValue) lead.remarks = cleanValue;
+          case 'remarks':
+          case 'notes':
+          case 'comments':
+            lead.remarks = value;
             break;
-          case headerLower.includes('follow up 1 date') || headerLower.includes('followup1date'):
-            if (cleanValue) lead.followUp1Date = cleanValue;
+          case 'follow up 1 date':
+            lead.followUp1Date = value;
             break;
-          case headerLower.includes('follow up comments (1)') || headerLower.includes('followup1comments'):
-            if (cleanValue) lead.followUp1Comments = cleanValue;
+          case 'follow up comments (1)':
+            lead.followUp1Comments = value;
             break;
-          case headerLower.includes('follow up 2 date') || headerLower.includes('followup2date'):
-            if (cleanValue) lead.followUp2Date = cleanValue;
+          case 'follow up 2 date':
+            lead.followUp2Date = value;
             break;
-          case headerLower.includes('follow up comments (2)') || headerLower.includes('followup2comments'):
-            if (cleanValue) lead.followUp2Comments = cleanValue;
+          case 'follow up comments (2)':
+            lead.followUp2Comments = value;
             break;
-          case headerLower.includes('follow up 3 date') || headerLower.includes('followup3date'):
-            if (cleanValue) lead.followUp3Date = cleanValue;
+          case 'follow up 3 date':
+            lead.followUp3Date = value;
             break;
-          case headerLower.includes('follow up comments (3)') || headerLower.includes('followup3comments'):
-            if (cleanValue) lead.followUp3Comments = cleanValue;
+          case 'follow up comments (3)':
+            lead.followUp3Comments = value;
             break;
-          case headerLower.includes('follow up 4 date') || headerLower.includes('followup4date'):
-            if (cleanValue) lead.followUp4Date = cleanValue;
+          case 'follow up 4 date':
+            lead.followUp4Date = value;
             break;
-          case headerLower.includes('follow up comments (4)') || headerLower.includes('followup4comments'):
-            if (cleanValue) lead.followUp4Comments = cleanValue;
+          case 'follow up comments (4)':
+            lead.followUp4Comments = value;
             break;
           default:
-            // Store additional columns as custom fields if they have values
-            if (cleanValue && header) {
-              lead[header] = cleanValue;
-            }
+            // Store additional columns as custom fields
+            lead[header] = value;
         }
       });
       
-      // Only include leads with at least a name or email
-      if (lead.fullName || lead.email) {
-        // Ensure all required fields have defaults
-        const completeLead: Lead = {
-          id: lead.id || `lead-${processedCount + 1}`,
-          fullName: lead.fullName || 'Unknown',
-          email: lead.email || '',
-          phone: lead.phone || '',
-          source: lead.source || 'Other',
-          associate: lead.associate || '',
-          status: lead.status || 'New',
-          stage: lead.stage || 'Initial Contact',
-          createdAt: lead.createdAt || new Date().toISOString().split('T')[0],
-          center: lead.center || '',
-          remarks: lead.remarks || '',
-          followUp1Date: lead.followUp1Date || '',
-          followUp1Comments: lead.followUp1Comments || '',
-          followUp2Date: lead.followUp2Date || '',
-          followUp2Comments: lead.followUp2Comments || '',
-          followUp3Date: lead.followUp3Date || '',
-          followUp3Comments: lead.followUp3Comments || '',
-          followUp4Date: lead.followUp4Date || '',
-          followUp4Comments: lead.followUp4Comments || '',
-          ...lead
-        };
-        
-        leads.push(completeLead);
-        processedCount++;
-      } else {
-        skippedCount++;
-      }
-    }
-    
-    console.log(`✅ Successfully processed ${processedCount} leads from Google Sheets`);
-    console.log(`📊 Skipped ${skippedCount} empty/invalid rows`);
-    console.log(`📈 Total dataset size: ${leads.length} leads`);
-    
-    // Log sample of first few leads for debugging
-    if (leads.length > 0) {
-      console.log('Sample lead data (first 3):');
-      leads.slice(0, 3).forEach((lead, idx) => {
-        console.log(`Lead ${idx + 1}:`, {
-          id: lead.id,
-          name: lead.fullName,
-          email: lead.email,
-          source: lead.source,
-          status: lead.status,
-          stage: lead.stage,
-          followUps: {
-            f1: lead.followUp1Date ? 'Yes' : 'No',
-            f2: lead.followUp2Date ? 'Yes' : 'No',
-            f3: lead.followUp3Date ? 'Yes' : 'No',
-            f4: lead.followUp4Date ? 'Yes' : 'No'
-          }
+      // Log the first few leads to debug follow-up comments
+      if (index < 3) {
+        console.log(`Lead ${index + 1} follow-up data:`, {
+          followUp1Date: lead.followUp1Date,
+          followUp1Comments: lead.followUp1Comments,
+          followUp2Date: lead.followUp2Date,
+          followUp2Comments: lead.followUp2Comments
         });
-      });
-    }
+      }
+      
+      // Ensure all required fields have defaults
+      return {
+        id: lead.id || `lead-${index + 1}`,
+        fullName: lead.fullName || 'Unknown',
+        email: lead.email || '',
+        phone: lead.phone || '',
+        source: lead.source || 'Other',
+        associate: lead.associate || '',
+        status: lead.status || 'New',
+        stage: lead.stage || 'Initial Contact',
+        createdAt: lead.createdAt || new Date().toISOString().split('T')[0],
+        center: lead.center || '',
+        remarks: lead.remarks || '',
+        followUp1Date: lead.followUp1Date || '',
+        followUp1Comments: lead.followUp1Comments || '',
+        followUp2Date: lead.followUp2Date || '',
+        followUp2Comments: lead.followUp2Comments || '',
+        followUp3Date: lead.followUp3Date || '',
+        followUp3Comments: lead.followUp3Comments || '',
+        followUp4Date: lead.followUp4Date || '',
+        followUp4Comments: lead.followUp4Comments || '',
+        ...lead
+      } as Lead;
+    });
+    
+    console.log('Successfully fetched leads from Google Sheets, count:', leads.length);
     
     // Update cache
     currentLeads = leads;
@@ -315,16 +263,15 @@ export const fetchLeads = async (): Promise<Lead[]> => {
     
     return leads;
   } catch (error) {
-    console.error('❌ Error fetching leads from Google Sheets:', error);
+    console.error('Error fetching leads from Google Sheets:', error);
     
     // Fall back to sample data only if we have no cached data
     if (currentLeads.length === 0) {
-      console.warn('⚠️ Using fallback sample data due to fetch error');
+      console.warn('Using fallback sample data due to fetch error');
       currentLeads = getSampleLeads();
       return currentLeads;
     }
     
-    console.log('📋 Returning cached data due to error');
     return currentLeads;
   }
 };
@@ -333,10 +280,7 @@ export const fetchLeads = async (): Promise<Lead[]> => {
 const findLeadRowInSheet = async (leadId: string): Promise<number> => {
   try {
     const accessToken = await getAccessToken();
-    
-    // Use a more targeted range for finding the lead ID
-    const searchRange = `${SHEET_NAME}!A:A`; // Only search in column A for IDs
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${searchRange}`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_RANGE}`;
     
     const response = await fetch(url, {
       method: 'GET',
@@ -367,7 +311,7 @@ const findLeadRowInSheet = async (leadId: string): Promise<number> => {
   }
 };
 
-// Function to update a lead with enhanced error handling
+// Function to update a lead
 export const updateLead = async (lead: Lead): Promise<Lead> => {
   console.log('Updating lead in Google Sheets:', lead.id);
   
@@ -380,7 +324,6 @@ export const updateLead = async (lead: Lead): Promise<Lead> => {
     console.log(`Found lead ${lead.id} at row ${rowNumber}`);
     
     // Prepare the update data - map lead fields to sheet columns
-    // Extended to cover more columns for comprehensive data
     const updateValues = [
       lead.id,
       lead.fullName,
@@ -416,8 +359,8 @@ export const updateLead = async (lead: Lead): Promise<Lead> => {
       ''  // Retention Status (if available)
     ];
     
-    // Update the specific row in Google Sheets with extended range
-    const range = `${SHEET_NAME}!A${rowNumber}:ZZ${rowNumber}`;
+    // Update the specific row in Google Sheets
+    const range = `${SHEET_NAME}!A${rowNumber}:AF${rowNumber}`;
     const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?valueInputOption=RAW`;
     
     const updateResponse = await fetch(updateUrl, {
@@ -432,12 +375,10 @@ export const updateLead = async (lead: Lead): Promise<Lead> => {
     });
     
     if (!updateResponse.ok) {
-      const errorText = await updateResponse.text();
-      console.error('Update error response:', errorText);
       throw new Error(`Failed to update sheet: ${updateResponse.statusText}`);
     }
     
-    console.log('✅ Lead updated successfully in Google Sheets');
+    console.log('Lead updated successfully in Google Sheets');
     
     // Update the cached version
     const indexInCache = currentLeads.findIndex(l => l.id === lead.id);
@@ -450,12 +391,12 @@ export const updateLead = async (lead: Lead): Promise<Lead> => {
     
     return lead;
   } catch (error) {
-    console.error('❌ Error updating lead in Google Sheets:', error);
+    console.error('Error updating lead in Google Sheets:', error);
     throw error;
   }
 };
 
-// Function to add a new lead with enhanced data handling
+// Function to add a new lead
 export const addLead = async (lead: Lead): Promise<Lead> => {
   console.log('Adding new lead to Google Sheets');
   
@@ -476,10 +417,10 @@ export const addLead = async (lead: Lead): Promise<Lead> => {
     // Simulate API delay
     await delay(800);
     
-    console.log('✅ New lead added successfully to Google Sheets');
+    console.log('New lead added successfully to Google Sheets');
     return newLead;
   } catch (error) {
-    console.error('❌ Error adding lead to Google Sheets:', error);
+    console.error('Error adding lead to Google Sheets:', error);
     throw error;
   }
 };
@@ -506,9 +447,9 @@ export const deleteLead = async (leadId: string): Promise<void> => {
     // Simulate API delay
     await delay(600);
     
-    console.log('✅ Lead deleted successfully from Google Sheets');
+    console.log('Lead deleted successfully from Google Sheets');
   } catch (error) {
-    console.error('❌ Error deleting lead from Google Sheets:', error);
+    console.error('Error deleting lead from Google Sheets:', error);
     throw error;
   }
 };
@@ -596,10 +537,10 @@ export const importLeadsFromCSV = async (csvString: string, columnMapping: Recor
     // Simulate API delay
     await delay(1000);
     
-    console.log(`✅ ${mappedLeads.length} leads imported successfully to Google Sheets`);
+    console.log(`${mappedLeads.length} leads imported successfully to Google Sheets`);
     return;
   } catch (error) {
-    console.error('❌ Error importing CSV to Google Sheets:', error);
+    console.error('Error importing CSV to Google Sheets:', error);
     throw error;
   }
 };
@@ -651,3 +592,4 @@ function getSampleLeads(): Lead[] {
     }
   ];
 }
+

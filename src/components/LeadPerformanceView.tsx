@@ -45,12 +45,12 @@ export function LeadPerformanceView() {
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
 
   const metricOptions = [
-    { value: 'leadsReceived', label: 'Leads Received', icon: <Users className="h-4 w-4" /> },
-    { value: 'membershipsSold', label: 'Memberships Sold', icon: <Award className="h-4 w-4" /> },
-    { value: 'trialCompleted', label: 'Trial Completed', icon: <Target className="h-4 w-4" /> },
-    { value: 'leadToTrialConversion', label: 'Lead to Trial Conversion', icon: <TrendingUp className="h-4 w-4" /> },
-    { value: 'trialToSoldConversion', label: 'Trial to Sold Conversion', icon: <TrendingUp className="h-4 w-4" /> },
-    { value: 'leadToSoldConversion', label: 'Lead to Sold Conversion', icon: <Activity className="h-4 w-4" /> }
+    { value: 'leadsReceived', label: 'Leads Received', icon: <Users className="h-3 w-3" /> },
+    { value: 'membershipsSold', label: 'Memberships Sold', icon: <Award className="h-3 w-3" /> },
+    { value: 'trialCompleted', label: 'Trial Completed', icon: <Target className="h-3 w-3" /> },
+    { value: 'leadToTrialConversion', label: 'Lead to Trial Conversion', icon: <TrendingUp className="h-3 w-3" /> },
+    { value: 'trialToSoldConversion', label: 'Trial to Sold Conversion', icon: <TrendingUp className="h-3 w-3" /> },
+    { value: 'leadToSoldConversion', label: 'Lead to Sold Conversion', icon: <Activity className="h-3 w-3" /> }
   ];
 
   const viewOptions = [
@@ -73,36 +73,45 @@ export function LeadPerformanceView() {
 
   // Process leads data into monthly performance metrics
   const performanceData = useMemo(() => {
+    if (!filteredLeads || filteredLeads.length === 0) {
+      return {};
+    }
+
     const data: PerformanceMetrics = {};
     
     // Get unique values for the selected view
     const uniqueValues = [...new Set(filteredLeads.map(lead => {
       switch(selectedView) {
-        case 'source': return lead.source;
-        case 'channel': return lead.source; // Using source as channel for now
-        case 'stage': return lead.stage;
-        case 'associate': return lead.associate;
-        default: return lead.source;
+        case 'source': return lead.source || 'Unknown';
+        case 'channel': return lead.source || 'Unknown'; // Using source as channel for now
+        case 'stage': return lead.stage || 'Unknown';
+        case 'associate': return lead.associate || 'Unknown';
+        default: return lead.source || 'Unknown';
       }
     }))].filter(Boolean);
 
     uniqueValues.forEach(value => {
       const valueLeads = filteredLeads.filter(lead => {
         switch(selectedView) {
-          case 'source': return lead.source === value;
-          case 'channel': return lead.source === value;
-          case 'stage': return lead.stage === value;
-          case 'associate': return lead.associate === value;
-          default: return lead.source === value;
+          case 'source': return (lead.source || 'Unknown') === value;
+          case 'channel': return (lead.source || 'Unknown') === value;
+          case 'stage': return (lead.stage || 'Unknown') === value;
+          case 'associate': return (lead.associate || 'Unknown') === value;
+          default: return (lead.source || 'Unknown') === value;
         }
       });
 
       data[value] = monthLabels.map(month => {
         // Filter leads for this month
         const monthLeads = valueLeads.filter(lead => {
-          const leadDate = new Date(lead.createdAt);
-          const leadMonth = leadDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-          return leadMonth === month;
+          if (!lead.createdAt) return false;
+          try {
+            const leadDate = new Date(lead.createdAt);
+            const leadMonth = leadDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+            return leadMonth === month;
+          } catch (error) {
+            return false;
+          }
         });
 
         const leadsReceived = monthLeads.length;
@@ -220,7 +229,7 @@ export function LeadPerformanceView() {
 
   const getMetricIcon = (metric: string) => {
     const option = metricOptions.find(opt => opt.value === metric);
-    return option?.icon || <BarChart3 className="h-4 w-4" />;
+    return option?.icon || <BarChart3 className="h-3 w-3" />;
   };
 
   const getCellColor = (value: number, metric: string) => {
@@ -254,7 +263,7 @@ export function LeadPerformanceView() {
     return (
       <div className="p-8 text-center">
         <div className="animate-spin h-10 w-10 rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
-        <p className="mt-4 text-muted-foreground">Loading performance data...</p>
+        <p className="mt-4 text-muted-foreground text-sm">Loading performance data...</p>
       </div>
     );
   }
@@ -266,21 +275,21 @@ export function LeadPerformanceView() {
         <CardHeader className="pb-4">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <CardTitle className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                <BarChart3 className="h-6 w-6 text-blue-600" />
+              <CardTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-blue-600" />
                 Lead Performance Analytics
               </CardTitle>
-              <p className="text-slate-600 mt-1">Month-on-month performance comparison across different metrics</p>
+              <p className="text-slate-600 mt-1 text-sm">Month-on-month performance comparison across different metrics</p>
             </div>
             
             <div className="flex items-center gap-3">
               <Select value={selectedView} onValueChange={setSelectedView}>
-                <SelectTrigger className="w-48 bg-white border-slate-300">
+                <SelectTrigger className="w-48 bg-white border-slate-300 text-sm">
                   <SelectValue placeholder="Select view" />
                 </SelectTrigger>
                 <SelectContent>
                   {viewOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
+                    <SelectItem key={option.value} value={option.value} className="text-sm">
                       {option.label}
                     </SelectItem>
                   ))}
@@ -288,12 +297,12 @@ export function LeadPerformanceView() {
               </Select>
               
               <Select value={selectedMetric} onValueChange={setSelectedMetric}>
-                <SelectTrigger className="w-56 bg-white border-slate-300">
+                <SelectTrigger className="w-56 bg-white border-slate-300 text-sm">
                   <SelectValue placeholder="Select metric" />
                 </SelectTrigger>
                 <SelectContent>
                   {metricOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
+                    <SelectItem key={option.value} value={option.value} className="text-sm">
                       <div className="flex items-center gap-2">
                         {option.icon}
                         {option.label}
@@ -308,14 +317,14 @@ export function LeadPerformanceView() {
                 size="sm" 
                 onClick={handleRefresh}
                 disabled={isLoading}
-                className="bg-white border-slate-300"
+                className="bg-white border-slate-300 text-sm"
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-3 w-3 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
               
-              <Button variant="outline" size="sm" className="bg-white border-slate-300">
-                <Download className="h-4 w-4 mr-2" />
+              <Button variant="outline" size="sm" className="bg-white border-slate-300 text-sm">
+                <Download className="h-3 w-3 mr-2" />
                 Export
               </Button>
             </div>
@@ -334,14 +343,14 @@ export function LeadPerformanceView() {
         
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <Table className="font-mono text-sm">
+            <Table className="font-mono text-xs">
               <TableHeader className="bg-gradient-to-r from-slate-700 to-slate-800 sticky top-0 z-10">
                 <TableRow className="border-b border-slate-600 hover:bg-gradient-to-r hover:from-slate-600 hover:to-slate-700 hover:border-b-2 hover:border-b-cyan-400 hover:shadow-[0_2px_0_0_#06b6d4] transition-all duration-200">
-                  <TableHead className="text-white font-bold text-xs w-[200px] bg-slate-800 h-[60px] text-left align-middle">
+                  <TableHead className="text-white font-bold text-xs w-[200px] bg-slate-800 h-[50px] text-left align-middle">
                     {selectedView.charAt(0).toUpperCase() + selectedView.slice(1)}
                   </TableHead>
                   {monthLabels.map((month, index) => (
-                    <TableHead key={month} className="text-white font-bold text-xs text-center min-w-[120px] h-[60px] align-middle hover:border-b-2 hover:border-b-cyan-400 hover:shadow-[0_2px_0_0_#06b6d4] transition-all duration-200">
+                    <TableHead key={month} className="text-white font-bold text-xs text-center min-w-[100px] h-[50px] align-middle hover:border-b-2 hover:border-b-cyan-400 hover:shadow-[0_2px_0_0_#06b6d4] transition-all duration-200">
                       <div className="flex flex-col items-center">
                         <span>{month}</span>
                         {index > 0 && monthlyTotals[index] && monthlyTotals[index - 1] && hoveredCell === `header-${month}` && (
@@ -353,7 +362,7 @@ export function LeadPerformanceView() {
                       </div>
                     </TableHead>
                   ))}
-                  <TableHead className="text-white font-bold text-xs text-center min-w-[120px] bg-slate-800 h-[60px] align-middle">
+                  <TableHead className="text-white font-bold text-xs text-center min-w-[100px] bg-slate-800 h-[50px] align-middle">
                     TOTAL
                   </TableHead>
                 </TableRow>
@@ -363,14 +372,14 @@ export function LeadPerformanceView() {
                 {Object.entries(performanceData).map(([key, data], rowIndex) => (
                   <TableRow 
                     key={key} 
-                    className={`hover:bg-slate-50 transition-colors border-b border-slate-100 h-[60px] ${
+                    className={`hover:bg-slate-50 transition-colors border-b border-slate-100 h-[50px] ${
                       rowIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'
                     }`}
                   >
-                    <TableCell className="font-semibold text-slate-800 bg-slate-100 border-r border-slate-200 h-[60px] text-left align-middle">
+                    <TableCell className="font-semibold text-slate-800 bg-slate-100 border-r border-slate-200 h-[50px] text-left align-middle">
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-teal-600"></div>
-                        <span className="truncate max-w-[160px]">{key}</span>
+                        <span className="truncate max-w-[160px] text-xs">{key}</span>
                       </div>
                     </TableCell>
                     
@@ -382,13 +391,13 @@ export function LeadPerformanceView() {
                       return (
                         <TableCell 
                           key={cellKey} 
-                          className="text-center p-2 h-[60px] align-middle"
+                          className="text-center p-2 h-[50px] align-middle"
                           onMouseEnter={() => setHoveredCell(cellKey)}
                           onMouseLeave={() => setHoveredCell(null)}
                         >
                           <div className="flex flex-col items-center gap-1">
                             <Badge 
-                              className={`${getCellColor(value, selectedMetric)} font-mono text-xs px-2 py-1 min-w-[60px] justify-center border`}
+                              className={`${getCellColor(value, selectedMetric)} font-mono text-xs px-2 py-1 min-w-[50px] justify-center border`}
                             >
                               {formatMetricValue(value, selectedMetric)}
                             </Badge>
@@ -398,9 +407,9 @@ export function LeadPerformanceView() {
                       );
                     })}
                     
-                    <TableCell className="text-center font-bold bg-slate-100 border-l border-slate-200 h-[60px] align-middle">
+                    <TableCell className="text-center font-bold bg-slate-100 border-l border-slate-200 h-[50px] align-middle">
                       <Badge 
-                        className={`${getCellColor(rowTotals[key][selectedMetric as keyof MonthlyData] as number, selectedMetric)} font-mono text-xs px-2 py-1 min-w-[60px] justify-center font-bold border`}
+                        className={`${getCellColor(rowTotals[key][selectedMetric as keyof MonthlyData] as number, selectedMetric)} font-mono text-xs px-2 py-1 min-w-[50px] justify-center font-bold border`}
                       >
                         {formatMetricValue(rowTotals[key][selectedMetric as keyof MonthlyData] as number, selectedMetric)}
                       </Badge>
@@ -409,10 +418,10 @@ export function LeadPerformanceView() {
                 ))}
                 
                 {/* Totals Row */}
-                <TableRow className="bg-gradient-to-r from-slate-200 to-slate-100 border-t-2 border-slate-300 font-bold h-[60px]">
-                  <TableCell className="font-bold text-slate-800 bg-slate-300 border-r border-slate-400 h-[60px] text-left align-middle">
+                <TableRow className="bg-gradient-to-r from-slate-200 to-slate-100 border-t-2 border-slate-300 font-bold h-[50px]">
+                  <TableCell className="font-bold text-slate-800 bg-slate-300 border-r border-slate-400 h-[50px] text-left align-middle">
                     <div className="flex items-center gap-2">
-                      <Activity className="h-4 w-4 text-slate-700" />
+                      <Activity className="h-3 w-3 text-slate-700" />
                       TOTAL
                     </div>
                   </TableCell>
@@ -425,13 +434,13 @@ export function LeadPerformanceView() {
                     return (
                       <TableCell 
                         key={cellKey} 
-                        className="text-center p-2 h-[60px] align-middle"
+                        className="text-center p-2 h-[50px] align-middle"
                         onMouseEnter={() => setHoveredCell(cellKey)}
                         onMouseLeave={() => setHoveredCell(null)}
                       >
                         <div className="flex flex-col items-center gap-1">
                           <Badge 
-                            className="bg-slate-700 text-white font-mono text-xs px-2 py-1 min-w-[60px] justify-center font-bold border border-slate-600"
+                            className="bg-slate-700 text-white font-mono text-xs px-2 py-1 min-w-[50px] justify-center font-bold border border-slate-600"
                           >
                             {formatMetricValue(value, selectedMetric)}
                           </Badge>
@@ -441,9 +450,9 @@ export function LeadPerformanceView() {
                     );
                   })}
                   
-                  <TableCell className="text-center font-bold bg-slate-300 border-l border-slate-400 h-[60px] align-middle">
+                  <TableCell className="text-center font-bold bg-slate-300 border-l border-slate-400 h-[50px] align-middle">
                     <Badge 
-                      className="bg-slate-800 text-white font-mono text-xs px-2 py-1 min-w-[60px] justify-center font-bold border border-slate-700"
+                      className="bg-slate-800 text-white font-mono text-xs px-2 py-1 min-w-[50px] justify-center font-bold border border-slate-700"
                     >
                       {formatMetricValue(
                         monthlyTotals.reduce((sum, month) => sum + (month[selectedMetric as keyof MonthlyData] as number), 0),
@@ -464,15 +473,15 @@ export function LeadPerformanceView() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-green-700">Best Performing</p>
-                <p className="text-2xl font-bold text-green-800">
+                <p className="text-xs font-medium text-green-700">Best Performing</p>
+                <p className="text-xl font-bold text-green-800">
                   {Object.entries(rowTotals).reduce((best, [key, data]) => {
                     const value = data[selectedMetric as keyof MonthlyData] as number;
                     return value > (best.value || 0) ? { key, value } : best;
                   }, { key: '', value: 0 }).key || 'N/A'}
                 </p>
               </div>
-              <Award className="h-8 w-8 text-green-600" />
+              <Award className="h-6 w-6 text-green-600" />
             </div>
           </CardContent>
         </Card>
@@ -481,15 +490,15 @@ export function LeadPerformanceView() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-blue-700">Current Month</p>
-                <p className="text-2xl font-bold text-blue-800">
+                <p className="text-xs font-medium text-blue-700">Current Month</p>
+                <p className="text-xl font-bold text-blue-800">
                   {formatMetricValue(
                     monthlyTotals[monthlyTotals.length - 1]?.[selectedMetric as keyof MonthlyData] as number || 0,
                     selectedMetric
                   )}
                 </p>
               </div>
-              <Calendar className="h-8 w-8 text-blue-600" />
+              <Calendar className="h-6 w-6 text-blue-600" />
             </div>
           </CardContent>
         </Card>
@@ -498,15 +507,15 @@ export function LeadPerformanceView() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-purple-700">Monthly Average</p>
-                <p className="text-2xl font-bold text-purple-800">
+                <p className="text-xs font-medium text-purple-700">Monthly Average</p>
+                <p className="text-xl font-bold text-purple-800">
                   {formatMetricValue(
                     monthlyTotals.reduce((sum, month) => sum + (month[selectedMetric as keyof MonthlyData] as number), 0) / monthlyTotals.length,
                     selectedMetric
                   )}
                 </p>
               </div>
-              <TrendingUp className="h-8 w-8 text-purple-600" />
+              <TrendingUp className="h-6 w-6 text-purple-600" />
             </div>
           </CardContent>
         </Card>

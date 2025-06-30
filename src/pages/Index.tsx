@@ -27,7 +27,9 @@ import {
   Bell,
   TrendingUp,
   Activity,
-  UserCheck
+  UserCheck,
+  Brain,
+  Sparkles
 } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import { SearchBar } from "@/components/SearchBar";
@@ -44,8 +46,10 @@ import { AIInsightsView } from "@/components/AIInsightsView";
 import { LeadPerformanceView } from "@/components/LeadPerformanceView";
 import { LeadTrendsView } from "@/components/LeadTrendsView";
 import { AssociateAnalytics } from "@/components/AssociateAnalytics";
+import { AISettingsModal } from "@/components/AISettingsModal";
 import { useLeads } from "@/contexts/LeadContext";
 import { PaginationControls } from "@/components/PaginationControls";
+import { aiService } from "@/services/aiService";
 import {
   Popover,
   PopoverContent,
@@ -66,9 +70,15 @@ const Index = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedView, setSelectedView] = useState<string>("table");
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [compactMode, setCompactMode] = useState(false);
+  const [isAIConfigured, setIsAIConfigured] = useState(false);
+
+  useEffect(() => {
+    setIsAIConfigured(aiService.isConfigured());
+  }, []);
 
   const handleLeadClick = (lead: any) => {
     setSelectedLead(lead);
@@ -126,6 +136,10 @@ const Index = () => {
     toast.success("Settings panel opened");
   };
 
+  const handleAISettings = () => {
+    setAiSettingsOpen(true);
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900/80 dark:to-gray-900">
       <header className="sticky top-0 z-20 bg-white dark:bg-gray-900 border-b backdrop-blur-sm bg-white/80 dark:bg-gray-900/80">
@@ -138,6 +152,20 @@ const Index = () => {
                 <span className="hidden sm:inline">Last updated 2 min ago</span>
               </Button>
               
+              {/* AI Settings Button */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleAISettings}
+                className={`gap-2 ${isAIConfigured ? 'bg-purple-50 border-purple-200 text-purple-700' : ''}`}
+              >
+                <Brain className="w-4 h-4" />
+                <span className="hidden sm:inline">
+                  {isAIConfigured ? 'AI Enabled' : 'Setup AI'}
+                </span>
+                {isAIConfigured && <Sparkles className="w-3 h-3" />}
+              </Button>
+              
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="w-9 h-9 p-0">
@@ -145,6 +173,10 @@ const Index = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleAISettings}>
+                    <Brain className="mr-2 h-4 w-4" />
+                    <span>AI Configuration</span>
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleSettingsClick}>
                     <Users className="mr-2 h-4 w-4" />
                     <span>User Preferences</span>
@@ -448,9 +480,23 @@ const Index = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl">AI Insights</CardTitle>
+                  {!isAIConfigured && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleAISettings}
+                      className="gap-2 border-purple-200 text-purple-700 hover:bg-purple-50"
+                    >
+                      <Brain className="h-4 w-4" />
+                      Setup AI
+                    </Button>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Gain AI-powered insights from your lead data.
+                  {isAIConfigured 
+                    ? 'Gain AI-powered insights from your lead data with advanced analysis and recommendations.'
+                    : 'Configure OpenAI integration to unlock AI-powered insights and recommendations.'
+                  }
                 </p>
               </CardHeader>
             </Card>
@@ -509,11 +555,27 @@ const Index = () => {
         clearSelection={() => setSelectedLeads([])}
       />
 
+      <AISettingsModal 
+        isOpen={aiSettingsOpen}
+        onClose={() => {
+          setAiSettingsOpen(false);
+          setIsAIConfigured(aiService.isConfigured());
+        }}
+      />
+
       <footer className="border-t bg-white dark:bg-gray-900">
         <div className="container py-3">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">© 2023 Lead Management Portal</p>
-            <p className="text-sm text-muted-foreground">Auto-refreshes every 15 minutes</p>
+            <div className="flex items-center gap-4">
+              {isAIConfigured && (
+                <div className="flex items-center gap-2 text-sm text-purple-600">
+                  <Sparkles className="h-4 w-4" />
+                  <span>AI Enhanced</span>
+                </div>
+              )}
+              <p className="text-sm text-muted-foreground">Auto-refreshes every 15 minutes</p>
+            </div>
           </div>
         </div>
       </footer>

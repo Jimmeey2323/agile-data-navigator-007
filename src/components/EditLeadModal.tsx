@@ -13,12 +13,14 @@ import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Save, X, User, Mail, Phone, Calendar, MapPin, FileText, Star, TrendingUp, Clock, CheckCircle, AlertCircle, Users, Target, Activity, BarChart3, PieChart, LineChart, Zap, Globe, MessageSquare, UserPlus, Building, Award, Lightbulb, ArrowRight, Eye, Edit, Trash2, Plus, RefreshCw, Calculator } from 'lucide-react';
+import { Save, X, User, Mail, Phone, Calendar, MapPin, FileText, Star, TrendingUp, Clock, CheckCircle, AlertCircle, Users, Target, Activity, BarChart3, PieChart, LineChart, Zap, Globe, MessageSquare, UserPlus, Building, Award, Lightbulb, ArrowRight, Eye, Edit, Trash2, Plus, RefreshCw, Calculator, Brain, Sparkles } from 'lucide-react';
 import { useLeads } from '@/contexts/LeadContext';
 import { Lead } from '@/services/googleSheets';
 import { toast } from 'sonner';
 import { formatDate } from '@/lib/utils';
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, BarChart as RechartsBarChart, Bar } from 'recharts';
+import { SmartLeadScoring } from '@/components/SmartLeadScoring';
+import { aiService } from '@/services/aiService';
 
 interface EditLeadModalProps {
   isOpen: boolean;
@@ -72,12 +74,21 @@ export function EditLeadModal({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [autoSave, setAutoSave] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [isAIConfigured, setIsAIConfigured] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
 
   // Initialize form data when lead changes
   useEffect(() => {
+    setIsAIConfigured(aiService.isConfigured());
+    
     if (lead) {
       setFormData(lead);
       setHasUnsavedChanges(false);
+      
+      // Load AI suggestions if configured
+      if (aiService.isConfigured()) {
+        loadAISuggestions(lead);
+      }
     } else {
       // Reset form for new lead
       setFormData({
@@ -104,6 +115,15 @@ export function EditLeadModal({
       setHasUnsavedChanges(false);
     }
   }, [lead, sourceOptions, associateOptions, centerOptions, stageOptions, statusOptions]);
+
+  const loadAISuggestions = async (leadData: Lead) => {
+    try {
+      const suggestions = await aiService.generateFollowUpSuggestions(leadData);
+      setAiSuggestions(suggestions);
+    } catch (error) {
+      console.error('Error loading AI suggestions:', error);
+    }
+  };
 
   // Calculate dynamic lead score with detailed breakdown
   const leadScoreCalculation = useMemo(() => {
@@ -324,6 +344,13 @@ export function EditLeadModal({
                   <p className="text-blue-100 mt-2 font-medium">
                     {formData.fullName || 'New Lead'} • {formData.source || 'No source'} • {formData.status || 'No status'}
                   </p>
+                  {isAIConfigured && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <Brain className="h-4 w-4 text-purple-200" />
+                      <span className="text-purple-200 text-sm">AI Enhanced</span>
+                      <Sparkles className="h-3 w-3 text-purple-200" />
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -364,7 +391,7 @@ export function EditLeadModal({
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
             {/* Tab Navigation - Fixed */}
             <div className="flex-shrink-0 px-8 py-4 bg-gray-50 border-b border-gray-200">
-              <TabsList className="grid grid-cols-6 w-full bg-white shadow-lg rounded-xl border border-gray-200">
+              <TabsList className="grid grid-cols-7 w-full bg-white shadow-lg rounded-xl border border-gray-200">
                 <TabsTrigger value="overview" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white text-xs">
                   <User className="h-4 w-4" />
                   Overview
@@ -378,8 +405,8 @@ export function EditLeadModal({
                   Follow-ups
                 </TabsTrigger>
                 <TabsTrigger value="score" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white text-xs">
-                  <Calculator className="h-4 w-4" />
-                  Score
+                  {isAIConfigured ? <Brain className="h-4 w-4" /> : <Calculator className="h-4 w-4" />}
+                  {isAIConfigured ? 'AI Score' : 'Score'}
                 </TabsTrigger>
                 <TabsTrigger value="insights" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white text-xs">
                   <BarChart3 className="h-4 w-4" />
@@ -389,6 +416,12 @@ export function EditLeadModal({
                   <Activity className="h-4 w-4" />
                   Activity
                 </TabsTrigger>
+                {isAIConfigured && (
+                  <TabsTrigger value="ai-suggestions" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-600 data-[state=active]:text-white text-xs">
+                    <Sparkles className="h-4 w-4" />
+                    AI Suggestions
+                  </TabsTrigger>
+                )}
               </TabsList>
             </div>
 
@@ -635,72 +668,7 @@ export function EditLeadModal({
                   </TabsContent>
 
                   <TabsContent value="score" className="mt-0 space-y-6">
-                    <Card className="bg-white border border-gray-200 shadow-xl rounded-2xl overflow-hidden">
-                      <CardHeader className="bg-gradient-to-r from-purple-50 to-violet-50">
-                        <CardTitle className="flex items-center gap-2 text-slate-800 text-sm">
-                          <Calculator className="h-5 w-5" />
-                          Lead Score Calculation
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-6">
-                        <div className="space-y-6">
-                          {/* Overall Score */}
-                          <div className="text-center">
-                            <div className="text-4xl font-bold text-slate-800 mb-2">
-                              {leadScoreCalculation.total}/100
-                            </div>
-                            <Progress value={leadScoreCalculation.total} className="w-full h-4 mb-2" />
-                            <p className="text-sm text-slate-600">
-                              {leadScoreCalculation.total >= 80 ? 'Excellent Lead Quality' : 
-                               leadScoreCalculation.total >= 60 ? 'Good Lead Quality' : 
-                               leadScoreCalculation.total >= 40 ? 'Fair Lead Quality' : 'Needs Improvement'}
-                            </p>
-                          </div>
-
-                          {/* Score Breakdown */}
-                          <div className="space-y-4">
-                            <h4 className="font-semibold text-slate-800 text-sm">Score Breakdown</h4>
-                            {leadScoreCalculation.breakdown.map((item, index) => (
-                              <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                                <div className="flex-1">
-                                  <div className="font-medium text-sm text-slate-800">{item.category}</div>
-                                  <div className="text-xs text-slate-600">{item.reason}</div>
-                                </div>
-                                <div className="text-right">
-                                  <div className={`font-bold text-sm ${item.points > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    +{item.points} pts
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-
-                          {/* Improvement Suggestions */}
-                          <div className="bg-blue-50 p-4 rounded-lg">
-                            <h4 className="font-semibold text-blue-800 text-sm mb-2 flex items-center gap-2">
-                              <Lightbulb className="h-4 w-4" />
-                              Improvement Suggestions
-                            </h4>
-                            <ul className="text-xs text-blue-700 space-y-1">
-                              {leadScoreCalculation.total < 100 && (
-                                <>
-                                  {!formData.fullName && <li>• Add complete name information</li>}
-                                  {!formData.email && <li>• Add email address for better communication</li>}
-                                  {!formData.phone && <li>• Add phone number for direct contact</li>}
-                                  {!formData.remarks && <li>• Add detailed remarks about the lead</li>}
-                                  {formData.stage === 'New Enquiry' && <li>• Progress the lead to next stage</li>}
-                                  {formData.status === 'Cold' && <li>• Improve lead quality through engagement</li>}
-                                  {!formData.followUp1Date && <li>• Schedule first follow-up activity</li>}
-                                </>
-                              )}
-                              {leadScoreCalculation.total === 100 && (
-                                <li>• Excellent! This lead has maximum score potential</li>
-                              )}
-                            </ul>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <SmartLeadScoring lead={formData} />
                   </TabsContent>
 
                   <TabsContent value="insights" className="mt-0 space-y-6">
@@ -805,6 +773,56 @@ export function EditLeadModal({
                       </CardContent>
                     </Card>
                   </TabsContent>
+
+                  {isAIConfigured && (
+                    <TabsContent value="ai-suggestions" className="mt-0 space-y-6">
+                      <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 shadow-xl rounded-2xl overflow-hidden">
+                        <CardHeader className="bg-gradient-to-r from-purple-100 to-pink-100">
+                          <CardTitle className="flex items-center gap-2 text-purple-800 text-sm">
+                            <Sparkles className="h-5 w-5" />
+                            AI-Powered Suggestions
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                          {aiSuggestions.length > 0 ? (
+                            <div className="space-y-4">
+                              <h4 className="font-semibold text-purple-800 mb-3">Follow-up Recommendations</h4>
+                              {aiSuggestions.map((suggestion, index) => (
+                                <div key={index} className="flex items-start gap-3 p-3 bg-white rounded-lg border border-purple-200">
+                                  <div className="w-6 h-6 rounded-full bg-purple-200 text-purple-800 flex items-center justify-center text-xs font-bold mt-0.5">
+                                    {index + 1}
+                                  </div>
+                                  <p className="text-sm text-purple-700 flex-1">{suggestion}</p>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="text-xs border-purple-200 text-purple-700 hover:bg-purple-50"
+                                    onClick={() => {
+                                      // Auto-fill next follow-up with suggestion
+                                      const nextFollowUp = !formData.followUp1Date ? 1 : 
+                                                          !formData.followUp2Date ? 2 : 
+                                                          !formData.followUp3Date ? 3 : 4;
+                                      if (nextFollowUp <= 4) {
+                                        handleInputChange(`followUp${nextFollowUp}Comments` as keyof Lead, suggestion);
+                                        toast.success(`Added to Follow-up ${nextFollowUp}`);
+                                      }
+                                    }}
+                                  >
+                                    Use
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-8">
+                              <Brain className="h-12 w-12 text-purple-400 mx-auto mb-4" />
+                              <p className="text-purple-600 text-sm">AI suggestions will appear here based on lead data</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  )}
                 </div>
               </ScrollArea>
             </div>
