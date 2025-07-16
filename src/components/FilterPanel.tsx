@@ -112,23 +112,23 @@ export function FilterPanel() {
     setFilters({ ...filters, status: currentValues });
   };
   
-  const handleStartDateChange = (date: Date | null) => {
+const handleStartDateChange = (date: Date | null) => {
     setFilters({
       ...filters,
       dateRange: {
         ...filters.dateRange,
-        start: date
-      }
+        start: date,
+      },
     });
   };
-  
+
   const handleEndDateChange = (date: Date | null) => {
     setFilters({
       ...filters,
       dateRange: {
         ...filters.dateRange,
-        end: date
-      }
+        end: date,
+      },
     });
   };
   

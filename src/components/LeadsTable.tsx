@@ -588,28 +588,23 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
                           </TableCell>
                         )}
                         
-                        {visibleColumns.source && (
-                          <TableCell className="h-[50px] py-2 text-center align-middle">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="cursor-pointer flex justify-center">
-                                    <EnhancedBadge 
-                                      variant={getSourceBadgeVariant(lead.source) as any}
-                                      badgeType="source"
-                                      value={lead.source}
-                                      showTextOnHover={true}
-                                      size="sm"
-                                    />
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent className="bg-slate-800 text-white">
-                                  <p>Source: {lead.source}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </TableCell>
-                        )}
+{visibleColumns.source && (
+  <TableCell className="h-[50px] py-2 text-center align-middle">
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="badge flex items-center gap-1 justify-center whitespace-nowrap">
+            <Globe className="h-3 w-3" />
+            {lead.source}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent className="bg-slate-800 text-white">
+          <p>Source: {lead.source}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  </TableCell>
+)}
                         
                         {visibleColumns.created && (
                           <TableCell className="h-[50px] py-2 text-left align-middle">
@@ -652,51 +647,41 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
                           </TableCell>
                         )}
                         
-                        {visibleColumns.stage && (
-                          <TableCell className="h-[50px] py-2 text-center align-middle">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="cursor-pointer flex justify-center">
-                                    <EnhancedBadge 
-                                      variant={getStageBadgeVariant(lead.stage) as any}
-                                      badgeType="stage"
-                                      value={lead.stage}
-                                      showTextOnHover={true}
-                                      size="sm"
-                                    />
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent className="bg-slate-800 text-white max-w-xs">
-                                  <p>Stage: {lead.stage}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </TableCell>
-                        )}
+{visibleColumns.stage && (
+  <TableCell className="h-[50px] py-2 text-center align-middle">
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="badge flex items-center gap-1 justify-center whitespace-nowrap">
+            <Target className="h-3 w-3" />
+            {lead.stage}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent className="bg-slate-800 text-white">
+          <p>Stage: {lead.stage}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  </TableCell>
+)}
                         
-                        {visibleColumns.status && (
-                          <TableCell className="h-[50px] py-2 text-center align-middle">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="cursor-pointer flex justify-center">
-                                    <EnhancedBadge 
-                                      variant={getStatusBadgeVariant(lead.status) as any}
-                                      badgeType="status"
-                                      value={lead.status}
-                                      showTextOnHover={true}
-                                      size="sm"
-                                    />
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent className="bg-slate-800 text-white">
-                                  <p>Status: {lead.status}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </TableCell>
-                        )}
+{visibleColumns.status && (
+  <TableCell className="h-[50px] py-2 text-center align-middle">
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="badge flex items-center gap-1 justify-center whitespace-nowrap">
+            <Activity className="h-3 w-3" />
+            {lead.status}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent className="bg-slate-800 text-white">
+          <p>Status: {lead.status}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  </TableCell>
+)}
                         
                         {visibleColumns.remarks && (
                           <TableCell className="h-[50px] py-2 text-left align-middle">
