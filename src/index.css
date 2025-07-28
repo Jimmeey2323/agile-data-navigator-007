@@ -161,6 +161,10 @@ html { font-family: 'Inter', sans-serif; }
   @apply bg-muted/40;
 }
 
+.lead-table td, th {
+  text-align: left !important;
+}
+
 .lead-table.compact td {
   @apply py-1 text-xs;
 }
