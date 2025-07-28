@@ -589,7 +589,7 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
                         )}
                         
 {visibleColumns.source && (
-  <TableCell className="h-[50px] py-2 text-center align-middle">
+  <TableCell className="h-[50px] py-2 text-left align-middle">
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
@@ -648,7 +648,7 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
                         )}
                         
 {visibleColumns.stage && (
-  <TableCell className="h-[50px] py-2 text-center align-middle">
+  <TableCell className="h-[50px] py-2 text-left align-middle">
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
@@ -666,7 +666,7 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
 )}
                         
 {visibleColumns.status && (
-  <TableCell className="h-[50px] py-2 text-center align-middle">
+  <TableCell className="h-[50px] py-2 text-left align-middle">
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
